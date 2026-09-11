@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>원료 주간 입고 계획</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F1EC;
+    --paper-raised:#FAF9F5;
+    --ink:#25272B;
+    --ink-soft:#6B6E73;
+    --line:#DBD8CE;
+    --line-strong:#C7C3B6;
+    --accent:#B8763A;
+    --total-bg:#EFE7DA;
+    --shadow: 0 1px 2px rgba(37,39,43,0.06), 0 4px 14px rgba(37,39,43,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:'Noto Sans KR',sans-serif;}
+  body{padding:26px 18px 60px;min-height:100vh;}
+  .wrap{max-width:900px;margin:0;}
+
+  .top{display:flex;align-items:center;justify-content:flex-start;
+    margin-bottom:14px;flex-wrap:wrap;gap:20px;}
+  h1{font-family:'Noto Serif KR',serif;font-weight:700;font-size:22px;margin:0;white-space:nowrap;}
+  .week-nav{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;}
+  .week-nav button{
+    background:none;border:1px solid var(--line-strong);color:var(--ink);
+    width:30px;height:30px;min-width:30px;border-radius:6px;cursor:pointer;font-size:14px;
+    display:flex;align-items:center;justify-content:center;flex:none;white-space:nowrap;
+  }
+  .week-nav button:hover{background:var(--paper-raised);}
+  .week-label{font-size:13px;color:var(--ink-soft);white-space:nowrap;flex:none;}
+  .today-btn{font-size:13px;font-family:'Noto Sans KR',sans-serif;color:var(--ink-soft);
+    background:none;border:1px solid var(--line);border-radius:20px;padding:5px 22px;
+    min-width:76px;cursor:pointer;white-space:nowrap;flex:none;}
+  .today-btn:hover{border-color:var(--line-strong);color:var(--ink);}
+
+  .view-links{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .view-links a{font-size:12px;color:var(--ink-soft);border:1px solid var(--line-strong);
+    border-radius:6px;padding:6px 12px;text-decoration:none;}
+  .view-links a:hover{border-color:var(--accent);color:var(--accent);}
+  .conn-status{font-size:11px;color:var(--ink-soft);margin-bottom:14px;}
+  .conn-status.err{color:#B0453C;}
+
+  .team-block{margin-bottom:34px;background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:10px;padding:16px 16px 12px;box-shadow:var(--shadow);width:fit-content;}
+  .team-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;}
+  .team-title{font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;margin:0;}
+
+  table{width:auto;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+  th,td{border:1px solid var(--line);padding:6px 3px;text-align:center;}
+  th{background:#EFEDE5;font-weight:500;color:var(--ink);font-size:12px;white-space:nowrap;}
+  col.col-name{width:112px;}
+  col.col-day{width:30px;}
+  col.col-total{width:38px;}
+  col.col-weight{width:58px;}
+  td.mat-name{text-align:left;padding:6px 4px 6px 10px;font-weight:500;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;position:relative;}
+  td.mat-name .name-inner{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+  td.mat-name .name-text{overflow:hidden;text-overflow:ellipsis;}
+  td.mat-name .mat-actions{display:flex;align-items:center;gap:3px;opacity:0;transition:opacity .12s;flex:0 0 auto;}
+  tr:hover td.mat-name .mat-actions{opacity:1;}
+  td.mat-name .mat-actions span{cursor:pointer;font-size:11px;color:var(--ink-soft);width:14px;text-align:center;line-height:1;}
+  td.mat-name .mat-actions span:hover{color:var(--accent);}
+  td.mat-name .mat-actions span.del:hover{color:#B0453C;}
+  td.mat-name .mat-actions span.disabled{opacity:.25;cursor:default;}
+  td.mat-name .mat-actions span.disabled:hover{color:var(--ink-soft);}
+
+  td.cell{cursor:pointer;transition:background .12s;vertical-align:middle;font-size:12.5px;}
+  td.cell:hover{background:#F2EDE0;}
+  td.cell .v{display:block;line-height:1.5;}
+  td.total{background:var(--total-bg);font-weight:700;color:var(--accent);}
+  td.weight{background:#F5F0E6;font-weight:600;color:var(--ink-soft);font-size:12px;}
+
+  .add-row{display:flex;gap:8px;margin-top:10px;}
+  .add-row input{flex:1;border:1px solid var(--line-strong);border-radius:6px;padding:7px 10px;font-size:13px;background:#fff;color:var(--ink);}
+  .add-btn-pill{border:none;background:var(--total-bg);color:var(--ink);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;}
+  .add-btn-pill:hover{background:#E6DAC5;}
+  .add-row .confirm-btn{border:none;background:var(--ink);color:#fff;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;}
+  .add-row .confirm-btn:hover{background:#1a1c1f;}
+
+  .overlay{position:fixed;inset:0;background:rgba(37,39,43,0.35);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--paper-raised);border-radius:12px;width:100%;max-width:320px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
+  .modal h2{font-family:'Noto Serif KR',serif;font-size:16px;margin:0 0 14px;}
+  .entries{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .entry{display:flex;align-items:center;justify-content:space-between;background:#F2EDE0;border-radius:6px;padding:5px 10px;font-size:13px;}
+  .entry .x{cursor:pointer;color:var(--ink-soft);font-size:12px;}
+  .entry .x:hover{color:#B0453C;}
+  .modal .add-line{display:flex;gap:8px;}
+  .modal input[type=number]{flex:1;border:1px solid var(--line-strong);border-radius:7px;padding:8px 10px;font-size:14px;width:0;}
+  .modal .row{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .modal button{border-radius:7px;padding:8px 16px;font-size:13px;cursor:pointer;border:none;}
+  .btn-cancel{background:none;color:var(--ink-soft);border:1px solid var(--line-strong) !important;}
+  .btn-add{background:var(--ink);color:#fff;}
+
+  @media (max-width:640px){
+    table{font-size:11.5px;}
+    th,td{padding:4px 2px;}
+    td.mat-name{padding-left:5px;}
+    h1{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>원료 주간 입고 계획</h1>
+    <div class="week-nav">
+      <button id="prevBtn">‹</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button id="nextBtn">›</button>
+      <button class="today-btn" id="thisWeekBtn">이번주</button>
+    </div>
+  </div>
+  <div class="conn-status" id="connStatus">Supabase 연결 확인 중...</div>
+  <div class="view-links">
+    <a href="team1-view.html" target="_blank">생산1팀 보기 페이지 열기 ↗</a>
+    <a href="team2-view.html" target="_blank">생산2팀 보기 페이지 열기 ↗</a>
+  </div>
+
+  <div class="team-block" id="team1Block">
+    <div class="team-title-row"><div class="team-title">생산1팀</div></div>
+    <table id="team1Table"></table>
+    <div class="add-row" id="team1AddRow"></div>
+  </div>
+
+  <div class="team-block" id="team2Block">
+    <div class="team-title-row"><div class="team-title">생산2팀</div></div>
+    <table id="team2Table"></table>
+    <div class="add-row" id="team2AddRow"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <div class="entries" id="entriesList"></div>
+    <div class="add-line">
+      <input type="number" id="valInput" placeholder="대수" min="0">
+      <button class="btn-add" id="addValBtn">추가</button>
+    </div>
+    <div class="row">
+      <button class="btn-cancel" id="closeModalBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app-shared.js"></script>
+<script>
+let materials = { team1: [], team2: [] };   // [{id,name,sort_order}]
+let weekData  = { team1: {}, team2: {} };    // grouped entries: {material:{day:[{id,amount}]}}
+let monday = getMonday(new Date());
+let channels = [];
+
+async function checkConnection(){
+  const el = document.getElementById('connStatus');
+  if(SUPABASE_URL.includes('YOUR-PROJECT') || SUPABASE_ANON_KEY.includes('YOUR-ANON')){
+    el.textContent = 'supabase-config.js에 프로젝트 URL/anon key를 아직 입력하지 않았습니다.';
+    el.classList.add('err');
+    return false;
+  }
+  const { error } = await supabaseClient.from('materials').select('id').limit(1);
+  if(error){
+    el.textContent = 'Supabase 연결 실패: ' + error.message;
+    el.classList.add('err');
+    return false;
+  }
+  el.textContent = 'Supabase 연결됨 · 실시간 반영 중';
+  el.classList.remove('err');
+  return true;
+}
+
+async function loadTeam(team){
+  materials[team] = await seedMaterialsIfEmpty(team);
+  const rows = await fetchEntries(team, weekKey(monday));
+  weekData[team] = groupEntries(rows);
+}
+async function loadAll(){
+  await loadTeam('team1');
+  await loadTeam('team2');
+}
+
+function renderHeader(){
+  document.getElementById('weekLabel').textContent = weekLabelText(monday);
+}
+
+function renderTable(team){
+  const table = document.getElementById(team+'Table');
+  let html = '<colgroup><col class="col-name">';
+  for(let i=0;i<6;i++) html += '<col class="col-day">';
+  html += '<col class="col-total"><col class="col-weight"></colgroup>';
+  html += '<thead><tr><th style="text-align:left;padding-left:10px;">원료명</th>';
+  for(let i=0;i<6;i++){
+    const d = dayDate(monday, i);
+    html += `<th>${fmtDayOnly(d)}(${WEEKDAYS[i]})</th>`;
+  }
+  html += '<th>합계</th><th>중량</th></tr></thead><tbody>';
+
+  const list = materials[team];
+  list.forEach((m, idx) => {
+    const mat = m.name;
+    const upCls = idx === 0 ? 'disabled' : '';
+    const downCls = idx === list.length-1 ? 'disabled' : '';
+    html += `<tr><td class="mat-name">
+      <div class="name-inner">
+        <span class="name-text">${escapeHtml(mat)}</span>
+        <span class="mat-actions">
+          <span class="up ${upCls}" data-team="${team}" data-id="${m.id}">▲</span>
+          <span class="down ${downCls}" data-team="${team}" data-id="${m.id}">▼</span>
+          <span class="del" data-team="${team}" data-id="${m.id}" data-mat="${escapeHtml(mat)}">×</span>
+        </span>
+      </div>
+    </td>`;
+    for(let i=0;i<6;i++){
+      const entriesForDay = (weekData[team][mat] && weekData[team][mat][i]) || [];
+      const content = entriesForDay.length ? entriesForDay.map(e=>`<span class="v">${e.amount}</span>`).join('') : '';
+      html += `<td class="cell" data-team="${team}" data-mat="${escapeHtml(mat)}" data-day="${i}">${content}</td>`;
+    }
+    const total = sumForMaterial(weekData[team], mat);
+    const weight = total * weightFor(mat);
+    html += `<td class="total">${total}</td><td class="weight">${weight}</td></tr>`;
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  table.querySelectorAll('td.cell').forEach(td=>{
+    td.addEventListener('click', ()=> openModal(td.dataset.team, td.dataset.mat, parseInt(td.dataset.day,10)));
+  });
+  table.querySelectorAll('.del').forEach(el=>{
+    el.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(!confirm(`"${el.dataset.mat}" 원료를 목록에서 삭제할까요?`)) return;
+      await deleteMaterial(parseInt(el.dataset.id,10));
+      await loadTeam(el.dataset.team);
+      renderTable(el.dataset.team);
+    });
+  });
+  table.querySelectorAll('.up, .down').forEach(el=>{
+    el.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(el.classList.contains('disabled')) return;
+      const team = el.dataset.team;
+      const id = parseInt(el.dataset.id,10);
+      const arr = materials[team];
+      const i = arr.findIndex(m=>m.id===id);
+      const dir = el.classList.contains('up') ? -1 : 1;
+      const j = i + dir;
+      if(j < 0 || j >= arr.length) return;
+      const a = arr[i], b = arr[j];
+      await updateMaterialOrder(a.id, b.sort_order);
+      await updateMaterialOrder(b.id, a.sort_order);
+      await loadTeam(team);
+      renderTable(team);
+    });
+  });
+}
+
+function renderAll(){
+  renderHeader();
+  renderTable('team1');
+  renderTable('team2');
+  showAddButton('team1');
+  showAddButton('team2');
+}
+
+// 원료 추가: 버튼만 보이다가 클릭 시 입력창으로 전환
+function showAddButton(team){
+  const row = document.getElementById(team+'AddRow');
+  row.innerHTML = `<button class="add-btn-pill" data-team="${team}">+ 원료 추가</button>`;
+  row.querySelector('.add-btn-pill').addEventListener('click', ()=> showAddInput(team));
+}
+function showAddInput(team){
+  const row = document.getElementById(team+'AddRow');
+  row.innerHTML = `
+    <input type="text" id="${team}NewMat" placeholder="원료명 입력 (예: 소석회)">
+    <button class="confirm-btn" data-team="${team}">추가</button>`;
+  const input = document.getElementById(team+'NewMat');
+  input.focus();
+  row.querySelector('.confirm-btn').addEventListener('click', ()=> submitNewMaterial(team));
+  input.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') submitNewMaterial(team);
+    if(e.key==='Escape') showAddButton(team);
+  });
+}
+async function submitNewMaterial(team){
+  const input = document.getElementById(team+'NewMat');
+  const name = input.value.trim();
+  if(!name){ showAddButton(team); return; }
+  if(!materials[team].some(m=>m.name===name)){
+    const nextOrder = materials[team].length ? Math.max(...materials[team].map(m=>m.sort_order))+1 : 0;
+    await insertMaterial(team, name, nextOrder);
+    await loadTeam(team);
+    renderTable(team);
+  }
+  showAddButton(team);
+}
+
+// 입고량 입력 모달
+let modalCtx = null;
+const overlay = document.getElementById('overlay');
+function openModal(team, mat, day){
+  modalCtx = {team, mat, day};
+  document.getElementById('modalTitle').textContent = `${mat} · ${WEEKDAYS[day]}요일 (${fmtDayOnly(dayDate(monday,day))}일)`;
+  renderEntries();
+  document.getElementById('valInput').value = '';
+  overlay.classList.add('show');
+  document.getElementById('valInput').focus();
+}
+function renderEntries(){
+  const {team, mat, day} = modalCtx;
+  const vals = (weekData[team][mat] && weekData[team][mat][day]) || [];
+  const list = document.getElementById('entriesList');
+  if(vals.length === 0){
+    list.innerHTML = `<div style="font-size:12px;color:var(--ink-soft);">등록된 입고가 없습니다.</div>`;
+    return;
+  }
+  list.innerHTML = vals.map(e=>
+    `<div class="entry"><span>${e.amount}대</span><span class="x" data-id="${e.id}">삭제</span></div>`
+  ).join('');
+  list.querySelectorAll('.x').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      await deleteEntry(parseInt(el.dataset.id,10));
+      await loadTeam(modalCtx.team);
+      renderEntries();
+      renderTable(modalCtx.team);
+    });
+  });
+}
+document.getElementById('addValBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('valInput');
+  const v = parseInt(input.value,10);
+  if(isNaN(v) || v < 0) return;
+  const {team, mat, day} = modalCtx;
+  await insertEntry(team, weekKey(monday), mat, day, v);
+  await loadTeam(team);
+  renderTable(team);
+  // 추가와 동시에 창 닫기
+  overlay.classList.remove('show');
+});
+document.getElementById('valInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') document.getElementById('addValBtn').click();
+});
+document.getElementById('closeModalBtn').addEventListener('click', ()=> overlay.classList.remove('show'));
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+
+// 주간 이동
+document.getElementById('prevBtn').addEventListener('click', async ()=>{
+  monday.setDate(monday.getDate()-7);
+  await loadAll(); renderAll();
+});
+document.getElementById('nextBtn').addEventListener('click', async ()=>{
+  monday.setDate(monday.getDate()+7);
+  await loadAll(); renderAll();
+});
+document.getElementById('thisWeekBtn').addEventListener('click', async ()=>{
+  monday = getMonday(new Date());
+  await loadAll(); renderAll();
+});
+
+(async function init(){
+  const ok = await checkConnection();
+  if(!ok) return;
+  await loadAll();
+  renderAll();
+  channels.push(subscribeTeam('team1', async ()=>{ await loadTeam('team1'); renderTable('team1'); }));
+  channels.push(subscribeTeam('team2', async ()=>{ await loadTeam('team2'); renderTable('team2'); }));
+})();
+</script>
+</body>
+</html>

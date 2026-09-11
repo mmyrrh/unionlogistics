@@ -1,0 +1,5 @@
+﻿back/
+unionlogistics_ready/
+.env
+.env.*
+!.env.example
