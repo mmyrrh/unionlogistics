@@ -31,6 +31,21 @@ function weekLabelText(m){
 }
 function dayDate(monday, idx){ const d = new Date(monday); d.setDate(d.getDate()+idx); return d; }
 
+// 뷰어 기본 주차: 금요일부터 다음 주(월~토)를 표시한다.
+// 예) 2026-09-11(금) → 2026-09-14(월) ~ 09-19(토)
+function getViewerDefaultMonday(d = new Date()){
+  const base = getMonday(d);
+  const day = new Date(d).getDay();
+  if(day === 5 || day === 6 || day === 0) base.setDate(base.getDate() + 7);
+  return base;
+}
+
+function shiftWeek(monday, amount){
+  const next = new Date(monday);
+  next.setDate(next.getDate() + amount * 7);
+  return next;
+}
+
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
