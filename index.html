@@ -47,7 +47,7 @@ h1{font-weight:700;font-size:24px;letter-spacing:-.04em;margin:0;white-space:now
 .view-links a:hover{background:var(--union-blue-soft);border-color:var(--union-blue)}
 .conn-status{font-size:11px;color:var(--ink-soft);margin-bottom:14px}
 .conn-status.err{color:var(--union-red)}
-.team-block{margin-bottom:28px;background:var(--surface);border:1pxf solid var(--line);border-top:3px solid var(--union-blue);
+.team-block{margin-bottom:28px;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--union-blue);
   border-radius:3px;padding:16px 16px 13px;box-shadow:var(--shadow);width:fit-content;max-width:100%}
 .team-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
 .team-title{font-size:17px;font-weight:700;margin:0;color:var(--union-blue-dark)}
@@ -115,10 +115,13 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
       <button class="today-btn" id="thisWeekBtn">*</button>
     </div>
   </div>
+
   <div class="conn-status" id="connStatus">Supabase 연결 확인 중...</div>
+
   <div class="view-links">
     <a href="team1-view.html" target="_blank">생산1팀 보기 페이지 열기 ↗</a>
     <a href="team2-view.html" target="_blank">생산2팀 보기 페이지 열기 ↗</a>
+    <a href="team1-2-view.html" target="_blank">생산1팀 타일공정 보기 페이지 열기 ↗</a>
   </div>
 
   <div class="team-block" id="team1Block">
@@ -127,13 +130,23 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
     <div class="add-row" id="team1AddRow"></div>
   </div>
 
+  <div class="team-block" id="team1-2Block">
+    <div class="team-title-row"><div class="team-title">생산1팀 타일공정</div></div>
+    <table id="team1-2Table"></table>
+    <div class="add-row" id="team1-2AddRow"></div>
+  </div>
+
   <div class="team-block" id="team2Block">
     <div class="team-title-row"><div class="team-title">생산2팀</div></div>
     <table id="team2Table"></table>
     <div class="add-row" id="team2AddRow"></div>
   </div>
 </div>
-<footer class="corp-footer"><img src="union-logo.png" alt="Union"><img class="footer-stripe" src="union-footer.png" alt=""></footer>
+
+<footer class="corp-footer">
+  <img src="union-logo.png" alt="Union">
+  <img class="footer-stripe" src="union-footer.png" alt="">
+</footer>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -152,25 +165,30 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="app-shared.js"></script>
+
 <script>
-let materials = { team1: [], team2: [] };   // [{id,name,sort_order}]
-let weekData  = { team1: {}, team2: {} };    // grouped entries: {material:{day:[{id,amount}]}}
+let materials = { team1: [], 'team1-2': [], team2: [] };
+let weekData  = { team1: {}, 'team1-2': {}, team2: {} };
 let monday = getMonday(new Date());
 let channels = [];
 
 async function checkConnection(){
   const el = document.getElementById('connStatus');
+
   if(SUPABASE_URL.includes('YOUR-PROJECT') || SUPABASE_ANON_KEY.includes('YOUR-ANON')){
     el.textContent = 'supabase-config.js에 프로젝트 URL/anon key를 아직 입력하지 않았습니다.';
     el.classList.add('err');
     return false;
   }
+
   const { error } = await supabaseClient.from('materials').select('id').limit(1);
+
   if(error){
     el.textContent = 'Supabase 연결 실패: ' + error.message;
     el.classList.add('err');
     return false;
   }
+
   el.textContent = 'Supabase 연결됨 · 실시간 반영 중';
   el.classList.remove('err');
   return true;
@@ -181,8 +199,10 @@ async function loadTeam(team){
   const rows = await fetchEntries(team, weekKey(monday));
   weekData[team] = groupEntries(rows);
 }
+
 async function loadAll(){
   await loadTeam('team1');
+  await loadTeam('team1-2');
   await loadTeam('team2');
 }
 
@@ -192,21 +212,29 @@ function renderHeader(){
 
 function renderTable(team){
   const table = document.getElementById(team+'Table');
+
   let html = '<colgroup><col class="col-name">';
+
   for(let i=0;i<6;i++) html += '<col class="col-day">';
+
   html += '<col class="col-total"><col class="col-weight"></colgroup>';
+
   html += '<thead><tr><th style="text-align:left;padding-left:10px;">원료명</th>';
+
   for(let i=0;i<6;i++){
     const d = dayDate(monday, i);
     html += `<th>${fmtDayOnly(d)}(${WEEKDAYS[i]})</th>`;
   }
+
   html += '<th>합계</th><th>중량</th></tr></thead><tbody>';
 
   const list = materials[team];
+
   list.forEach((m, idx) => {
     const mat = m.name;
     const upCls = idx === 0 ? 'disabled' : '';
     const downCls = idx === list.length-1 ? 'disabled' : '';
+
     html += `<tr><td class="mat-name">
       <div class="name-inner">
         <span class="name-text">${escapeHtml(mat)}</span>
@@ -217,13 +245,24 @@ function renderTable(team){
         </span>
       </div>
     </td>`;
+
     for(let i=0;i<6;i++){
-      const entriesForDay = (weekData[team][mat] && weekData[team][mat][i]) || [];
-      const content = entriesForDay.length ? entriesForDay.map(e=>`<span class="v">${e.amount}</span>`).join('') : '';
-      html += `<td class="cell" data-team="${team}" data-mat="${escapeHtml(mat)}" data-day="${i}">${content}</td>`;
+      const entriesForDay =
+        (weekData[team][mat] && weekData[team][mat][i]) || [];
+
+      const content = entriesForDay.length
+        ? entriesForDay.map(e=>`<span class="v">${e.amount}</span>`).join('')
+        : '';
+
+      html += `<td class="cell"
+        data-team="${team}"
+        data-mat="${escapeHtml(mat)}"
+        data-day="${i}">${content}</td>`;
     }
+
     const total = sumForMaterial(weekData[team], mat);
     const weight = total * weightFor(mat);
+
     html += `<td class="total">${total}</td><td class="weight">${weight}</td></tr>`;
   });
 
@@ -231,31 +270,49 @@ function renderTable(team){
   table.innerHTML = html;
 
   table.querySelectorAll('td.cell').forEach(td=>{
-    td.addEventListener('click', ()=> openModal(td.dataset.team, td.dataset.mat, parseInt(td.dataset.day,10)));
+    td.addEventListener('click', ()=>{
+      openModal(
+        td.dataset.team,
+        td.dataset.mat,
+        parseInt(td.dataset.day,10)
+      );
+    });
   });
+
   table.querySelectorAll('.del').forEach(el=>{
     el.addEventListener('click', async (e)=>{
       e.stopPropagation();
+
       if(!confirm(`"${el.dataset.mat}" 원료를 목록에서 삭제할까요?`)) return;
+
       await deleteMaterial(parseInt(el.dataset.id,10));
       await loadTeam(el.dataset.team);
       renderTable(el.dataset.team);
     });
   });
+
   table.querySelectorAll('.up, .down').forEach(el=>{
     el.addEventListener('click', async (e)=>{
       e.stopPropagation();
+
       if(el.classList.contains('disabled')) return;
+
       const team = el.dataset.team;
       const id = parseInt(el.dataset.id,10);
       const arr = materials[team];
       const i = arr.findIndex(m=>m.id===id);
+
       const dir = el.classList.contains('up') ? -1 : 1;
       const j = i + dir;
+
       if(j < 0 || j >= arr.length) return;
-      const a = arr[i], b = arr[j];
+
+      const a = arr[i];
+      const b = arr[j];
+
       await updateMaterialOrder(a.id, b.sort_order);
       await updateMaterialOrder(b.id, a.sort_order);
+
       await loadTeam(team);
       renderTable(team);
     });
@@ -264,66 +321,110 @@ function renderTable(team){
 
 function renderAll(){
   renderHeader();
+
   renderTable('team1');
+  renderTable('team1-2');
   renderTable('team2');
+
   showAddButton('team1');
+  showAddButton('team1-2');
   showAddButton('team2');
 }
 
 // 원료 추가: 버튼만 보이다가 클릭 시 입력창으로 전환
 function showAddButton(team){
   const row = document.getElementById(team+'AddRow');
-  row.innerHTML = `<button class="add-btn-pill" data-team="${team}">+ 원료 추가</button>`;
-  row.querySelector('.add-btn-pill').addEventListener('click', ()=> showAddInput(team));
+
+  row.innerHTML =
+    `<button class="add-btn-pill" data-team="${team}">+ 원료 추가</button>`;
+
+  row.querySelector('.add-btn-pill')
+    .addEventListener('click', ()=> showAddInput(team));
 }
+
 function showAddInput(team){
   const row = document.getElementById(team+'AddRow');
+
   row.innerHTML = `
     <input type="text" id="${team}NewMat" placeholder="원료명 입력 (예: 소석회)">
     <button class="confirm-btn" data-team="${team}">추가</button>`;
+
   const input = document.getElementById(team+'NewMat');
+
   input.focus();
-  row.querySelector('.confirm-btn').addEventListener('click', ()=> submitNewMaterial(team));
+
+  row.querySelector('.confirm-btn')
+    .addEventListener('click', ()=> submitNewMaterial(team));
+
   input.addEventListener('keydown', (e)=>{
     if(e.key==='Enter') submitNewMaterial(team);
     if(e.key==='Escape') showAddButton(team);
   });
 }
+
 async function submitNewMaterial(team){
   const input = document.getElementById(team+'NewMat');
   const name = input.value.trim();
-  if(!name){ showAddButton(team); return; }
+
+  if(!name){
+    showAddButton(team);
+    return;
+  }
+
   if(!materials[team].some(m=>m.name===name)){
-    const nextOrder = materials[team].length ? Math.max(...materials[team].map(m=>m.sort_order))+1 : 0;
+    const nextOrder =
+      materials[team].length
+        ? Math.max(...materials[team].map(m=>m.sort_order))+1
+        : 0;
+
     await insertMaterial(team, name, nextOrder);
     await loadTeam(team);
     renderTable(team);
   }
+
   showAddButton(team);
 }
 
 // 입고량 입력 모달
 let modalCtx = null;
 const overlay = document.getElementById('overlay');
+
 function openModal(team, mat, day){
   modalCtx = {team, mat, day};
-  document.getElementById('modalTitle').textContent = `${mat} · ${WEEKDAYS[day]}요일 (${fmtDayOnly(dayDate(monday,day))}일)`;
+
+  document.getElementById('modalTitle').textContent =
+    `${mat} · ${WEEKDAYS[day]}요일 (${fmtDayOnly(dayDate(monday,day))}일)`;
+
   renderEntries();
+
   document.getElementById('valInput').value = '';
+
   overlay.classList.add('show');
+
   document.getElementById('valInput').focus();
 }
+
 function renderEntries(){
   const {team, mat, day} = modalCtx;
-  const vals = (weekData[team][mat] && weekData[team][mat][day]) || [];
+
+  const vals =
+    (weekData[team][mat] && weekData[team][mat][day]) || [];
+
   const list = document.getElementById('entriesList');
+
   if(vals.length === 0){
-    list.innerHTML = `<div style="font-size:12px;color:var(--ink-soft);">등록된 입고가 없습니다.</div>`;
+    list.innerHTML =
+      `<div style="font-size:12px;color:var(--ink-soft);">등록된 입고가 없습니다.</div>`;
     return;
   }
+
   list.innerHTML = vals.map(e=>
-    `<div class="entry"><span>${e.amount}대</span><span class="x" data-id="${e.id}">삭제</span></div>`
+    `<div class="entry">
+      <span>${e.amount}대</span>
+      <span class="x" data-id="${e.id}">삭제</span>
+    </div>`
   ).join('');
+
   list.querySelectorAll('.x').forEach(el=>{
     el.addEventListener('click', async ()=>{
       await deleteEntry(parseInt(el.dataset.id,10));
@@ -333,45 +434,86 @@ function renderEntries(){
     });
   });
 }
+
 document.getElementById('addValBtn').addEventListener('click', async ()=>{
   const input = document.getElementById('valInput');
   const v = parseInt(input.value,10);
+
   if(isNaN(v) || v < 0) return;
+
   const {team, mat, day} = modalCtx;
+
   await insertEntry(team, weekKey(monday), mat, day, v);
+
   await loadTeam(team);
   renderTable(team);
+
   // 추가와 동시에 창 닫기
   overlay.classList.remove('show');
 });
+
 document.getElementById('valInput').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') document.getElementById('addValBtn').click();
+  if(e.key === 'Enter')
+    document.getElementById('addValBtn').click();
 });
-document.getElementById('closeModalBtn').addEventListener('click', ()=> overlay.classList.remove('show'));
-overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+
+document.getElementById('closeModalBtn')
+  .addEventListener('click', ()=> overlay.classList.remove('show'));
+
+overlay.addEventListener('click', (e)=>{
+  if(e.target===overlay)
+    overlay.classList.remove('show');
+});
 
 // 주간 이동
 document.getElementById('prevBtn').addEventListener('click', async ()=>{
   monday.setDate(monday.getDate()-7);
-  await loadAll(); renderAll();
+  await loadAll();
+  renderAll();
 });
+
 document.getElementById('nextBtn').addEventListener('click', async ()=>{
   monday.setDate(monday.getDate()+7);
-  await loadAll(); renderAll();
+  await loadAll();
+  renderAll();
 });
+
 document.getElementById('thisWeekBtn').addEventListener('click', async ()=>{
   monday = getMonday(new Date());
-  await loadAll(); renderAll();
+  await loadAll();
+  renderAll();
 });
 
 (async function init(){
   const ok = await checkConnection();
+
   if(!ok) return;
+
   await loadAll();
   renderAll();
-  channels.push(subscribeTeam('team1', async ()=>{ await loadTeam('team1'); renderTable('team1'); }));
-  channels.push(subscribeTeam('team2', async ()=>{ await loadTeam('team2'); renderTable('team2'); }));
+
+  channels.push(
+    subscribeTeam('team1', async ()=>{
+      await loadTeam('team1');
+      renderTable('team1');
+    })
+  );
+
+  channels.push(
+    subscribeTeam('team1-2', async ()=>{
+      await loadTeam('team1-2');
+      renderTable('team1-2');
+    })
+  );
+
+  channels.push(
+    subscribeTeam('team2', async ()=>{
+      await loadTeam('team2');
+      renderTable('team2');
+    })
+  );
 })();
 </script>
 </body>
 </html>
+```
