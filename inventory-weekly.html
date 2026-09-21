@@ -88,7 +88,7 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
 .modal button{border-radius:4px;padding:8px 16px;font-size:13px;cursor:pointer;border:none}
 .btn-cancel{background:#fff;color:var(--ink-soft);border:1px solid var(--line-strong)!important}
 .btn-add{background:var(--union-blue);color:#fff}
-.corp-footer{height:30px;position:relative;margin-top:auto;overflow:hidden}
+.corp-footer{height:48px;position:relative;margin-top:auto;overflow:hidden}
 .corp-footer .footer-stripe{position:absolute;left:0;right:0;bottom:0;width:100%;height:17px;object-fit:fill;display:block}
 .corp-footer .footer-stripe:after{display:none}
 .corp-footer img{position:absolute;right:26px;bottom:13px;width:108px;height:auto;z-index:2}
@@ -119,12 +119,19 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
   <div class="view-links">
     <a href="team1-view.html" target="_blank">생산1팀 보기 페이지 열기 ↗</a>
     <a href="team2-view.html" target="_blank">생산2팀 보기 페이지 열기 ↗</a>
+    <a href="team1-2-view.html" target="_blank">생산1팀 타일공정 보기 페이지 열기 ↗</a>
   </div>
 
   <div class="team-block" id="team1Block">
     <div class="team-title-row"><div class="team-title">생산1팀</div></div>
     <table id="team1Table"></table>
     <div class="add-row" id="team1AddRow"></div>
+  </div>
+
+  <div class="team-block" id="team1-2Block">
+    <div class="team-title-row"><div class="team-title">생산1팀 타일공정</div></div>
+    <table id="team1-2Table"></table>
+    <div class="add-row" id="team1-2AddRow"></div>
   </div>
 
   <div class="team-block" id="team2Block">
@@ -153,8 +160,8 @@ td.weight{background:#F7F8FB;font-weight:600;color:var(--ink-soft);font-size:12p
 <script src="supabase-config.js"></script>
 <script src="app-shared.js"></script>
 <script>
-let materials = { team1: [], team2: [] };   // [{id,name,sort_order}]
-let weekData  = { team1: {}, team2: {} };    // grouped entries: {material:{day:[{id,amount}]}}
+let materials = { team1: [], 'team1-2': [], team2: [] };   // [{id,name,sort_order}]
+let weekData  = { team1: {}, 'team1-2': {}, team2: {} };    // grouped entries: {material:{day:[{id,amount}]}}
 let monday = getMonday(new Date());
 let channels = [];
 
@@ -183,6 +190,7 @@ async function loadTeam(team){
 }
 async function loadAll(){
   await loadTeam('team1');
+  await loadTeam('team1-2');
   await loadTeam('team2');
 }
 
@@ -265,8 +273,10 @@ function renderTable(team){
 function renderAll(){
   renderHeader();
   renderTable('team1');
+  renderTable('team1-2');
   renderTable('team2');
   showAddButton('team1');
+  showAddButton('team1-2');
   showAddButton('team2');
 }
 
@@ -370,6 +380,7 @@ document.getElementById('thisWeekBtn').addEventListener('click', async ()=>{
   await loadAll();
   renderAll();
   channels.push(subscribeTeam('team1', async ()=>{ await loadTeam('team1'); renderTable('team1'); }));
+  channels.push(subscribeTeam('team1-2', async ()=>{ await loadTeam('team1-2'); renderTable('team1-2'); }));
   channels.push(subscribeTeam('team2', async ()=>{ await loadTeam('team2'); renderTable('team2'); }));
 })();
 </script>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>생산1팀 · 원료 주간 입고 계획</title>
+<title>생산1팀 타일공정 · 원료 주간 입고 계획</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -67,12 +67,12 @@ td.total{background:var(--total-bg);font-weight:700;color:var(--union-blue)}
 <script src="supabase-config.js"></script>
 <script src="app-shared.js"></script>
 <script>
-const TEAM = 'team1';
+const TEAM = 'team1-2';
 let monday = getViewerDefaultMonday(new Date());
 
 async function renderView(){
   document.getElementById('weekLabel').textContent = weekLabelText(monday);
-  const materials = await fetchMaterials(TEAM);
+  const materials = await seedMaterialsIfEmpty(TEAM);
   const rows = await fetchEntries(TEAM, weekKey(monday));
   const grouped = groupEntries(rows);
 
